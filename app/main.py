@@ -35,8 +35,13 @@ class Position(db.Model):
     town = db.Column(db.String(255))
     postcode = db.Column(db.String(255))
     driving_distance = db.Column(db.String(255))
-    timezone = pytz.timezone('Europe/Berlin')  # Set the timezone to Berlin
-    timestamp = db.Column(db.String(16), default=datetime.now(timezone).strftime("%d.%m.%Y %H:%M"))
+    timestamp = db.Column(db.String(16))
+
+    def __init__(self, *args, **kwargs):
+        super(Position, self).__init__(*args, **kwargs)
+        
+        # Set the timestamp in the constructor with the desired format and timezone
+        self.timestamp = datetime.now(pytz.timezone('Europe/Berlin')).strftime("%d.%m.%Y %H:%M")
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -240,7 +245,8 @@ def calculate_driving_distance(origin, destination):
         print(f"Error calculating driving distance: {str(e)}")
         return 'N/A'
 
+with app.app_context():
+    db.create_all()
+
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(host="0.0.0.0", port=80)
