@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Position Recorder</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Position Recorder</h1>
+        <form method="POST" id="position-form">
+            <button type="button" id="get-position-button">Get My Position</button>
+            <input type="hidden" id="latitude" name="latitude">
+            <input type="hidden" id="longitude" name="longitude">
+        </form>
+
+        <div class="position-list">
+            <h2>Recorded Positions</h2>
+            <button type="button" id="delete-all-button" class="delete-all-button">Delete All</button>
+            <button type="button" id="export-csv-button" class="export-csv-button">Export CSV</button>
+            <button type="button" id="create-pdf-button" class="create-pdf-button">Create PDF</button>
+            <ul>
+                {% for position in positions %}
+                <li>
+                    <div class="location-info">
+                        <p>Timestamp: {{ position.timestamp }}</p>
+                        <p>Latitude: {{ position.latitude }}, Longitude: {{ position.longitude }}</p>
+                        <p>{{ position.street }} {{ position.house_number }}, {{ position.postcode }} {{ position.town }}</p>
+                        <p>Driving Distance: {{ position.driving_distance }}</p>
+                    </div>
+                    <div class="action-buttons">
+                        <button type="button" class="edit-button" data-position-id="{{ position.id }}">Edit</button>
+                        <form method="POST" action="{{ url_for('delete_position', id=position.id) }}" class="delete-form">
+                            <button type="submit" class="delete-button">Delete</button>
+                        </form>
+                    </div>
+                    <div class="edit-form" id="edit-form-{{ position.id }}" style="display: none;">
+                        <form method="POST" action="{{ url_for('edit_position', id=position.id) }}">
+                            <label for="edited-timestamp">Timestamp:</label>
+                            <input type="text" id="edited-timestamp" name="edited_timestamp" value="{{ position.timestamp }}">
+                            <br>
+                            <label for="edited-street">Street:</label>
+                            <input type="text" id="edited-street" name="edited_street" value="{{ position.street }}">
+                            <br>
+                            <label for="edited-house-number">House Number:</label>
+                            <input type="text" id="edited-house-number" name="edited_house_number" value="{{ position.house_number }}">
+                            <br>
+                            <label for="edited-town">Town:</label>
+                            <input type="text" id="edited-town" name="edited_town" value="{{ position.town }}">
+                            <br>
+                            <label for="edited-postcode">Postcode:</label>
+                            <input type="text" id="edited-postcode" name="edited_postcode" value="{{ position.postcode }}">
+                            <br>
+                            <button type="submit" class="update-button">Update</button>
+                        </form>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const getPositionButton = document.getElementById('get-position-button');
+            const latitudeInput = document.getElementById('latitude');
+            const longitudeInput = document.getElementById('longitude');
+            const deleteAllButton = document.getElementById('delete-all-button');
+            const exportCsvButton = document.getElementById('export-csv-button');  
+            const createPdfButton = document.getElementById('create-pdf-button');  
+            const editButtons = document.querySelectorAll('.edit-button');
+            const deleteButtons = document.querySelectorAll('.delete-button');
+
+            deleteButtons.forEach(function(button) {
+                button.addEventListener('click', function(event) {
+                    event.preventDefault(); // Prevent the form from submitting immediately
+
+                    if (confirm("Are you sure you want to delete this position?")) {
+                        // If the user confirms, submit the form
+                        button.closest('form').submit();
+                    }
+                });
+            });
+
+            editButtons.forEach(function(button) {
+                button.addEventListener('click', function() {
+                    const positionId = button.getAttribute('data-position-id');
+                    const editForm = document.getElementById(`edit-form-${positionId}`);
+
+                    // Toggle the display of the edit form
+                    editForm.style.display = editForm.style.display === 'none' ? 'block' : 'none';
+                });
+            });
+    
+            getPositionButton.addEventListener('click', function() {
+                if ("geolocation" in navigator) {
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        latitudeInput.value = position.coords.latitude;
+                        longitudeInput.value = position.coords.longitude;
+                        document.getElementById('position-form').submit();
+                    }, function(error) {
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                alert("User denied the request for Geolocation.");
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                alert("Location information is unavailable.");
+                                break;
+                            case error.TIMEOUT:
+                                alert("The request to get user location timed out.");
+                                break;
+                            case error.UNKNOWN_ERROR:
+                                alert("An unknown error occurred.");
+                                break;
+                        }
+                    });
+                } else {
+                    alert("Geolocation is not available in your browser.");
+                }
+            });
+    
+            deleteAllButton.addEventListener('click', function() {
+                if (confirm("Are you sure you want to delete all positions?")) {
+                    // Redirect to the route that handles deleting all positions
+                    window.location.href = "{{ url_for('delete_all_positions') }}";
+                }
+            });
+    
+            exportCsvButton.addEventListener('click', function() {
+                // Redirect to the route that exports data as CSV
+                window.location.href = "{{ url_for('export_csv') }}";
+            });
+    
+            createPdfButton.addEventListener('click', function() {
+                // Redirect to the route that exports data as PDF
+                window.location.href = "{{ url_for('export_pdf') }}";
+            });
+        });
+    </script>
+    
+</body>
+</html>
